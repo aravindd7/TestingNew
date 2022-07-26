@@ -1,12 +1,4 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import type {Node} from 'react';
 import {
   SafeAreaView,
@@ -16,96 +8,95 @@ import {
   Text,
   useColorScheme,
   View,
+  Dimensions,
+  FlatList,
+  Button,
+  TextInput,
 } from 'react-native';
+import axios from 'axios';
+import {resolvePlugin} from '@babel/core';
+import moment from 'moment';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-const Section = ({children, title}): Node => {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
-
+const windowHeight = Dimensions.get('window').height;
 const App: () => Node = () => {
   const isDarkMode = useColorScheme() === 'dark';
+  const [itemsToRender, setItemsToRender] = useState([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  useEffect(() => {
+    try {
+      axios({
+        method: 'get',
+        url: 'https://gnews.io/api/v4/top-headlines?token=1d9d8710b55223346224c11253ec4a60&lang=en',
+      }).then(function (response) {
+        console.log('response: ', response);
+        setItemsToRender(response, _response.articles);
+      });
+    } catch (er) {
+      console.log('er: ', er);
+    }
+  }, []);
 
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
+  function LoginScreen() {
+    return (
+      <View style={styles.root}>
+        <Text>Enter your Email</Text>
+        <TextInput style={{borderWidth: '2px'}} />
+        <Text>Enter your password</Text>
+        <Button
+          onPress={() => {
+            setIsLoggedIn(true);
+          }}
+          title="Login">
+          Login
+        </Button>
+      </View>
+    );
+  }
+
+  const renderItem = item => {
+    return (
+      <View>
+        <Image source={item.image} />
+        <Text>{item.name}</Text>
+        <Text>{item.title}</Text>
         <View
           style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
           }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.js</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+          <Text>{moment(item.publishedAt).fromNow()}</Text>
+          <Text>Three Dots</Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+      </View>
+    );
+  };
+
+  function DetailsScreen() {
+    return (
+      <SafeAreaView style={styles.root}>
+        <FlatList
+          data={itemsToRender}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          horizontal={false}
+          numColumns={2}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  return <View>{isLoggedIn ? <DetailsScreen /> : <LoginScreen />}</View>;
 };
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  root: {
+    height: windowHeight,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    padding: 20,
   },
 });
 
